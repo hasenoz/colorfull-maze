@@ -3,46 +3,55 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    // degiskenler
+    // Degiskenler
+    Transform keyTransform;
+    [SerializeField] float keyOffset = 5f; // Anahtarýn maksimum mesafesi
+    [SerializeField] float moveSpeed = 2f; // Hareket hýzý - [SerializeField] Editörde görünmesini saðlar
+    InputAction moveAction; // Hareket etme iþlemi
+    InputAction interactAction; // Etkileþim iþlemi
+    private bool hasKey = false; // Anahtarýn alýnýp alýnmadýðýný kontrol etmek için bayrak
 
-    // Hareket hýzý - [SerializeField] Editörde görünmesini saðlar
-    [SerializeField] float moveSpeed = 2f;
-    // InputAction yeni bir input alma classý oklar ve wasd üzerinden calýsýyor
-    InputAction moveAction;
-    InputAction collectAction;
 
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    // Start, MonoBehaviour oluþturulduktan sonra ilk çerçeveden önce bir kez çaðrýlýr
     void Start()
     {
+        // Input sisteminden aksiyonlarý bul
         moveAction = InputSystem.actions.FindAction("Move");
-        collectAction = InputSystem.actions.FindAction("Interact");
+        interactAction = InputSystem.actions.FindAction("Interact");
     }
 
-    // Update is called once per frame
+    // Update her çerçevede bir kez çaðrýlýr
     void Update()
     {
-        // moveActiona göre karakteri hareket ettir
+        // Karakteri moveAction'a göre hareket ettir
         Vector2 moveValue = moveAction.ReadValue<Vector2>();
         transform.Translate(moveValue * Time.deltaTime * moveSpeed);
-        CollectKey();
 
-    }
-
-    void CollectKey()
-    {
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.zero);
-        if (hit.collider != null)
+        // Eðer etkileþim tuþuna basýldýysa ve anahtar varsa
+        if (interactAction.WasPressedThisFrame() && hasKey)
         {
-            Debug.Log("Vurdum");
+            ReleaseKey(); // Anahtarý býrak
         }
     }
 
+    // OnTriggerStay2D, bir Collider2D nesnesi tetikleyici ile temas halinde olduðunda sürekli çaðrýlýr
     private void OnTriggerStay2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag("key") && collectAction.IsPressed())
+        // Eðer çarpýþan nesne anahtar etiketine sahipse ve etkileþim tuþuna basýlmýþsa ve henüz bir anahtar toplanmamýþsa
+        if (collision.gameObject.CompareTag("key") && interactAction.IsPressed() && keyTransform == null)
         {
-            collision.transform.parent = transform;
+            keyTransform = collision.transform; // Anahtarýn transformunu kaydet
+            keyTransform.parent = transform; // Anahtarýn ebeveynini bu nesne yap
+            hasKey = true;//anahtarý aldý
+
         }
+    }
+
+    // Anahtarý býrakma iþlevi
+    void ReleaseKey()
+    {
+        keyTransform.parent = null; // Anahtarýn ebeveyn baðýný kaldýr
+        keyTransform = null; // Anahtarýn referansýný sýfýrla
+        hasKey = false; // anahtarý býraktý
     }
 }
